@@ -2,58 +2,80 @@ package main
 
 import (
 	"os"
+
 	"github.com/veandco/go-sdl2/sdl"
 )
 
 const (
-  screenWidth = 480
-  screenHeight = 640
-  applicationTitle = "Hello World!"
+	screenWidth      = 1920
+	screenHeight     = 1200
+	applicationTitle = "Hello World!"
+
+	initVideo         = sdl.INIT_VIDEO
+	positionUndefined = sdl.WINDOWPOS_UNDEFINED
 )
 
-func createWindow() (err error) {
-  var window *sdl.Window
-  var screenSurface *sdl.Surface
+var (
+	isRunning bool = true
 
-  if err = sdl.Init(sdl.INIT_VIDEO); err != nil {
-    return err
-  }
+	window        *sdl.Window
+	screenSurface *sdl.Surface
+)
 
-  defer sdl.Quit()
-
-  if window, err = sdl.CreateWindow(applicationTitle, sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, screenWidth, screenHeight, sdl.WINDOW_SHOWN); err != nil {
-    return err
-  }
-
-  if screenSurface, err = window.GetSurface(); err != nil {
-    return err
-  }
-
-  if err = screenSurface.FillRect(nil, sdl.MapRGB(screenSurface.Format, 0xFF, 0xFF, 0xFF)); err != nil {
-    return err
-  }
-
-  if err = window.UpdateSurface(); err != nil {
-    return err
-  }
-
-  quit := false
-
-  for !quit {
-    for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
-      switch event.(type) {
-      case *sdl.QuitEvent:
-        quit = true
-      }
-    }
-  }
-
-  err = window.Destroy()
-  return err
+func QuitApp(exitCode int) {
+	os.Exit(exitCode)
 }
 
-func main()  {
-  if err := createWindow(); err != nil {
-    os.Exit(1)
-  } 
+func CreateWindow() (window *sdl.Window, err error) {
+	return sdl.CreateWindow(
+		applicationTitle,
+		positionUndefined,
+		positionUndefined,
+		screenWidth,
+		screenHeight,
+		sdl.WINDOW_SHOWN,
+	)
+}
+
+func FillRect(r, g, b uint8) {
+	screenSurface.FillRect(nil, sdl.MapRGB(screenSurface.Format, r, g, b))
+	window.UpdateSurface()
+}
+
+func RunApplication() (err error) {
+	if err = sdl.Init(initVideo); err != nil {
+		return err
+	}
+
+	window, err = CreateWindow()
+	if err != nil {
+		panic(err)
+	}
+
+	// This line of code does not execute until createWindow() does not return.
+	defer sdl.Quit()
+
+	if screenSurface, err = window.GetSurface(); err != nil {
+		return err
+	}
+
+	FillRect(0x00, 0xFF, 0x00)
+
+	for isRunning {
+		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
+			switch event.(type) {
+			case *sdl.QuitEvent:
+				isRunning = false
+			}
+		}
+	}
+
+	err = window.Destroy()
+	return err
+}
+
+func main() {
+	if err := RunApplication(); err != nil {
+		QuitApp(1)
+	}
 }
